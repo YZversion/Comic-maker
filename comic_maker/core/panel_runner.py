@@ -21,7 +21,12 @@ def make_panel_output_path(panel_id: str) -> str:
 def run_panel_job(job: PanelJob) -> dict:
     provider = ImageProvider(provider=config.IMAGE_PROVIDER)
     output_path = make_panel_output_path(job.panel_id)
-    image_path = provider.generate(job.prompt, output_path)
+    image_path = provider.generate(
+        job.prompt,
+        output_path,
+        seed=job.seed,
+        negative_prompt=job.negative_prompt,
+    )
 
     record = {
         "panel_id": job.panel_id,

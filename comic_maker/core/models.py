@@ -37,6 +37,8 @@ class PanelJob:
     status: str = "pending"
     image_path: str = ""
     retry_count: int = 0
+    seed: int | None = None
+    negative_prompt: str = ""
 
     def to_dict(self):
         return self.__dict__

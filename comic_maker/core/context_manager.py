@@ -52,6 +52,28 @@ def format_scene_text(scene_ctx: dict) -> str:
     return scene_ctx.get("description", "")
 
 
+def build_alias_map(character_db: dict) -> dict:
+    """Return alias → canonical_name mapping from the character database."""
+    alias_map: dict = {}
+    for canonical, info in character_db.items():
+        alias_map[canonical] = canonical
+        for alias in info.get("aliases", []):
+            alias_map[alias] = canonical
+    return alias_map
+
+
+def normalize_character_names(names: list, alias_map: dict) -> list:
+    """Map aliases/pronouns to canonical names, deduplicate, preserve order."""
+    seen: set = set()
+    result: list = []
+    for name in names:
+        canonical = alias_map.get(name, name)
+        if canonical not in seen:
+            seen.add(canonical)
+            result.append(canonical)
+    return result
+
+
 def get_context_for_beat(beat: Beat) -> dict:
     character_db = load_character_db()
     scene_db = load_scene_db()

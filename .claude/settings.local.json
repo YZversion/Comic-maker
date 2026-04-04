@@ -15,7 +15,8 @@
       "WebFetch(domain:openapi.liblibai.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebFetch(domain:blog.csdn.net)"
+      "WebFetch(domain:blog.csdn.net)",
+      "Bash(python -m pytest tests/ -v)"
     ]
   }
 }

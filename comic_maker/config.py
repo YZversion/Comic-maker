@@ -40,3 +40,9 @@ DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
 PANELS_PER_PAGE = 4
 MAX_RETRY = 3
+
+# Fixed style anchor injected into every panel prompt
+STYLE_LOCK = "manga panel, black and white ink, clean lineart, screentone shading, highly detailed"
+
+# Negative prompt passed to image providers that support it
+NEGATIVE_PROMPT = "color, photograph, 3d render, blurry, text, watermark, extra limbs, deformed"

@@ -1,5 +1,6 @@
 ﻿import re
 
+from .context_manager import build_alias_map, load_character_db, normalize_character_names
 from .models import Beat
 from ..providers.llm_provider import LLMProvider
 
@@ -35,9 +36,10 @@ def segment_chapter(chapter_text: str) -> list[Beat]:
     segments = split_by_rules(paragraphs)
     beats = build_beats_from_segments(segments)
     llm = LLMProvider()
+    alias_map = build_alias_map(load_character_db())
     for beat in beats:
         enriched = llm.enrich_beat(beat.text)
-        beat.characters = enriched["characters"]
+        beat.characters = normalize_character_names(enriched["characters"], alias_map)
         beat.location = enriched["location"]
         beat.time = enriched["time"]
         beat.actions = enriched["actions"]

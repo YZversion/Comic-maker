@@ -13,13 +13,19 @@ class ImageProvider:
     def __init__(self, provider: str = "mock"):
         self.provider = provider
 
-    def generate(self, prompt: str, output_path: str) -> str:
+    def generate(
+        self,
+        prompt: str,
+        output_path: str,
+        seed: int | None = None,
+        negative_prompt: str = "",
+    ) -> str:
         if self.provider == "mock":
             return self._mock_generate(prompt, output_path)
         if self.provider == "siliconflow":
-            return self._siliconflow_generate(prompt, output_path)
+            return self._siliconflow_generate(prompt, output_path, seed=seed, negative_prompt=negative_prompt)
         if self.provider == "liblib":
-            return self._liblib_generate(prompt, output_path)
+            return self._liblib_generate(prompt, output_path, seed=seed, negative_prompt=negative_prompt)
         raise NotImplementedError(f"Provider '{self.provider}' not implemented yet")
 
     def _mock_generate(self, prompt: str, output_path: str) -> str:
@@ -29,22 +35,29 @@ class ImageProvider:
             f.write(f"[MOCK IMAGE]\n\nPrompt:\n{prompt}\n")
         return placeholder
 
-    def _siliconflow_generate(self, prompt: str, output_path: str) -> str:
+    def _siliconflow_generate(
+        self, prompt: str, output_path: str, seed: int | None = None, negative_prompt: str = ""
+    ) -> str:
         import requests
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        body: dict = {
+            "model": config.IMAGE_MODEL,
+            "prompt": prompt,
+            "image_size": "1024x1024",
+            "num_inference_steps": 4,
+        }
+        if seed is not None:
+            body["seed"] = seed
+        if negative_prompt:
+            body["negative_prompt"] = negative_prompt
         resp = requests.post(
             "https://api.siliconflow.cn/v1/images/generations",
             headers={
                 "Authorization": f"Bearer {config.SILICONFLOW_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": config.IMAGE_MODEL,
-                "prompt": prompt,
-                "image_size": "1024x1024",
-                "num_inference_steps": 4,
-            },
+            json=body,
             timeout=60,
         )
         resp.raise_for_status()
@@ -87,7 +100,9 @@ class ImageProvider:
             "SignatureNonce": nonce,
         }
 
-    def _liblib_generate(self, prompt: str, output_path: str) -> str:
+    def _liblib_generate(
+        self, prompt: str, output_path: str, seed: int | None = None, negative_prompt: str = ""
+    ) -> str:
         import time
         import requests
 
@@ -97,14 +112,19 @@ class ImageProvider:
         # 1. 提交生成任务
         uri = "/api/generate/webui/text2img/ultra"
         params = self._liblib_sign(uri)
+        generate_params: dict = {
+            "prompt": prompt,
+            "aspectRatio": "portrait",
+            "imgCount": 1,
+            "steps": 30,
+        }
+        if seed is not None:
+            generate_params["seed"] = seed
+        if negative_prompt:
+            generate_params["negativePrompt"] = negative_prompt
         body = {
             "templateUuid": config.LIBLIB_TEMPLATE_UUID or "5d7e67009b344550bc1aa6ccbfa1d7f4",
-            "generateParams": {
-                "prompt": prompt,
-                "aspectRatio": "portrait",
-                "imgCount": 1,
-                "steps": 30,
-            },
+            "generateParams": generate_params,
         }
         resp = requests.post(
             base_url + uri,

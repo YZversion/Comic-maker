@@ -57,7 +57,7 @@ def run_smoke_test() -> None:
     for job in jobs:
         record = run_panel_job(job)
         assert record["image_path"], f"{job.panel_id} 没有返回 image_path"
-    print(f"[OK] 出图（mock）：{len(jobs)} 格")
+    print(f"[OK] 出图（{config.IMAGE_PROVIDER}）：{len(jobs)} 格")
 
     pages = build_page_manifest()
     assert len(pages) > 0, "拼页结果不能为空"
