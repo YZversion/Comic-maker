@@ -1,0 +1,14 @@
+你是漫画分镜助手。请将以下小说段落分析为结构化的「beat」信息。
+
+输入段落：
+{text}
+
+请以 JSON 格式输出，包含以下字段：
+- characters: 出现的角色名列表
+- location: 场景地点（如：教室、走廊、屋顶）
+- time: 时间（如：早晨、傍晚、夜晚）
+- actions: 角色的主要动作列表
+- emotion: 整体情绪基调（如：紧张、温馨、悲伤、愤怒）
+- visual_priority: 视觉重要程度（low / medium / high）
+
+只输出 JSON，不要其他文字。

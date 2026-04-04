@@ -1,0 +1,2 @@
+[console_scripts]
+comic-maker = comic_maker.main:main

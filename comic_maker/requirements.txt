@@ -1,0 +1,5 @@
+anthropic>=0.89.0
+python-dotenv>=1.0.0
+pillow>=10.0.0
+requests>=2.31.0
+# replicate>=0.25.0  # 接入 Replicate 图像生成时取消注释
