@@ -37,11 +37,21 @@ def _make_beats_with_char(n: int = 4) -> list[Beat]:
     ]
 
 
+def _passthrough_llm(payload: dict) -> str:
+    """Test double: echoes the structured sections back as a flat string."""
+    return " ".join(v for v in payload.values() if v)
+
+
 def _build_jobs(beats):
     with patch("comic_maker.core.context_manager.load_character_db", return_value=_CHAR_DB), \
          patch("comic_maker.core.context_manager.load_scene_db", return_value=_SCENE_DB), \
-         patch("comic_maker.core.context_manager.load_prop_db", return_value=_PROP_DB):
-        shots = plan_shots(beats)
+         patch("comic_maker.core.context_manager.load_prop_db", return_value=_PROP_DB), \
+         patch("comic_maker.core.prompt_builder.LLMProvider") as MockPromptLLM, \
+         patch("comic_maker.core.planner.LLMProvider") as MockPlannerLLM:
+        MockPromptLLM.return_value.build_panel_prompt.side_effect = _passthrough_llm
+        # Planner LLM returns an empty dict → rule-based fallback kicks in
+        MockPlannerLLM.return_value.plan_shot.return_value = {}
+        shots = plan_shots(beats, use_llm=True)
         return build_panel_jobs(beats, shots)
 
 

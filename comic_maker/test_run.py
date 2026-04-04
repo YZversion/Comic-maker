@@ -3,6 +3,7 @@
 """
 
 import sys
+from unittest.mock import patch
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -16,6 +17,7 @@ try:
     from comic_maker.core.prompt_builder import build_panel_jobs
     from comic_maker.core.segmenter import segment_chapter
     from comic_maker.core.storage import ensure_dir, init_data_files, init_project_state, save_json
+    from comic_maker.providers.llm_provider import LLMProvider
 except ModuleNotFoundError:
     import config
     from core.exporter import export_chapter_bundle
@@ -25,9 +27,32 @@ except ModuleNotFoundError:
     from core.prompt_builder import build_panel_jobs
     from core.segmenter import segment_chapter
     from core.storage import ensure_dir, init_data_files, init_project_state, save_json
+    from providers.llm_provider import LLMProvider
 
 
 SAMPLE_TEXT = """林晓推开教室门。她看见周然站在窗边，背对着走廊，望向操场。\n“你怎么还没走？”林晓轻声问。\n周然没有回答，只是把头转过来，眼镜反着光。\n窗外的阳光很烈，把他的轮廓镀成金色。\n林晓走近了几步，把书包放在桌上。"""
+
+
+_DEF_ENRICH = {
+    "characters": ["林晓", "周然"],
+    "location": "教室",
+    "time": "白天",
+    "actions": ["对话"],
+    "emotion": "neutral",
+    "visual_priority": "medium",
+}
+
+
+def _mock_enrich(_self, _text: str) -> dict:
+    return dict(_DEF_ENRICH)
+
+
+def _mock_plan_shot(_self, _beat) -> dict:
+    return {}
+
+
+def _mock_build_panel_prompt(_self, payload: dict) -> str:
+    return ", ".join(v for v in payload.values() if v)
 
 
 def run_smoke_test() -> None:
@@ -40,33 +65,42 @@ def run_smoke_test() -> None:
     save_json(config.PANEL_MANIFEST_PATH, [])
     init_project_state()
 
-    beats = segment_chapter(SAMPLE_TEXT)
-    assert len(beats) > 0, "切分结果不能为空"
-    print(f"[OK] 切分：{len(beats)} 个 beat")
+    original_provider = config.IMAGE_PROVIDER
+    config.IMAGE_PROVIDER = "mock"
 
-    shots = plan_shots(beats)
-    assert len(shots) == len(beats), "镜头数量应与 beat 数量一致"
-    print(f"[OK] 镜头规划：{len(shots)} 个镜头")
+    try:
+        with patch.object(LLMProvider, "enrich_beat", _mock_enrich), patch.object(
+            LLMProvider, "plan_shot", _mock_plan_shot
+        ), patch.object(LLMProvider, "build_panel_prompt", _mock_build_panel_prompt):
+            beats = segment_chapter(SAMPLE_TEXT)
+            assert len(beats) > 0, "切分结果不能为空"
+            print(f"[OK] 切分：{len(beats)} 个 beat")
 
-    jobs = build_panel_jobs(beats, shots)
-    assert len(jobs) == len(beats), "job 数量应与 beat 数量一致"
-    for job in jobs:
-        assert job.prompt, f"{job.panel_id} prompt 不能为空"
-    print(f"[OK] Prompt 生成：{len(jobs)} 个 job")
+            shots = plan_shots(beats)
+            assert len(shots) == len(beats), "镜头数量应与 beat 数量一致"
+            print(f"[OK] 镜头规划：{len(shots)} 个镜头")
 
-    for job in jobs:
-        record = run_panel_job(job)
-        assert record["image_path"], f"{job.panel_id} 没有返回 image_path"
-    print(f"[OK] 出图（{config.IMAGE_PROVIDER}）：{len(jobs)} 格")
+            jobs = build_panel_jobs(beats, shots)
+            assert len(jobs) == len(beats), "job 数量应与 beat 数量一致"
+            for job in jobs:
+                assert job.prompt, f"{job.panel_id} prompt 不能为空"
+            print(f"[OK] Prompt 生成：{len(jobs)} 个 job")
 
-    pages = build_page_manifest()
-    assert len(pages) > 0, "拼页结果不能为空"
-    print(f"[OK] 拼页：{len(pages)} 页")
+            for job in jobs:
+                record = run_panel_job(job)
+                assert record["image_path"], f"{job.panel_id} 没有返回 image_path"
+            print(f"[OK] 出图（mock）：{len(jobs)} 格")
 
-    export_dir = export_chapter_bundle("smoke_test")
-    print(f"[OK] 导出：{export_dir}")
+        pages = build_page_manifest()
+        assert len(pages) > 0, "拼页结果不能为空"
+        print(f"[OK] 拼页：{len(pages)} 页")
 
-    print("-- 全部通过 --")
+        export_dir = export_chapter_bundle("smoke_test")
+        print(f"[OK] 导出：{export_dir}")
+
+        print("-- 全部通过 --")
+    finally:
+        config.IMAGE_PROVIDER = original_provider
 
 
 if __name__ == "__main__":

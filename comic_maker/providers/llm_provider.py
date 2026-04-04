@@ -1,12 +1,16 @@
-﻿"""LLM provider for Comic-maker."""
+﻿"""LLM provider for Comic-maker (DeepSeek only)."""
 
 import json
 import os
 
 try:
     from comic_maker import config
+    from comic_maker.core.models import Beat
+    from comic_maker.core.storage import append_log
 except ModuleNotFoundError:
     import config
+    from core.models import Beat
+    from core.storage import append_log
 
 _PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "prompts")
 
@@ -14,6 +18,32 @@ _PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "prompts")
 def _load_prompt(filename: str) -> str:
     with open(os.path.join(_PROMPTS_DIR, filename), encoding="utf-8") as f:
         return f.read()
+
+
+def _strip_fences(raw: str) -> str:
+    cleaned = raw.strip()
+    if not cleaned.startswith("```"):
+        return cleaned
+    cleaned = cleaned.split("```", 2)[1]
+    if cleaned.startswith("json"):
+        cleaned = cleaned[4:]
+    return cleaned.rsplit("```", 1)[0].strip()
+
+
+def _warn(message: str) -> None:
+    if config.LOG_FALLBACKS:
+        append_log(f"[WARN][LLM] {message}")
+
+
+def _default_enrich() -> dict:
+    return {
+        "characters": [],
+        "location": "",
+        "time": "",
+        "actions": [],
+        "emotion": "",
+        "visual_priority": "medium",
+    }
 
 
 class LLMProvider:
@@ -27,51 +57,101 @@ class LLMProvider:
     def enrich_beat(self, beat_text: str) -> dict:
         template = _load_prompt("segment_chapter.txt")
         prompt = template.replace("{text}", beat_text)
-        raw = self._call_llm(system="你是漫画分镜助手，只输出 JSON。", user=prompt)
-        # Strip markdown code fences if present
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```", 2)[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-            cleaned = cleaned.rsplit("```", 1)[0].strip()
+        try:
+            raw = self._call_llm(system="你是漫画分镜助手，只输出 JSON。", user=prompt)
+        except Exception as exc:
+            _warn(f"enrich_beat call failed: {exc}; beat={beat_text[:80]!r}")
+            return _default_enrich()
+
+        cleaned = _strip_fences(raw)
         try:
             data = json.loads(cleaned)
-        except json.JSONDecodeError:
-            return {
-                "characters": [],
-                "location": "",
-                "time": "",
-                "actions": [],
-                "emotion": "",
-                "visual_priority": "medium",
-            }
+            if not isinstance(data, dict):
+                raise ValueError("parsed payload is not a JSON object")
+        except Exception as exc:
+            _warn(f"enrich_beat JSON parse failed: {exc}; beat={beat_text[:80]!r}")
+            return _default_enrich()
+
+        characters = data.get("characters", [])
+        actions = data.get("actions", [])
+        if not isinstance(characters, list):
+            characters = []
+        if not isinstance(actions, list):
+            actions = []
+
+        visual_priority = data.get("visual_priority", "medium")
+        if visual_priority not in {"low", "medium", "high"}:
+            visual_priority = "medium"
+
         return {
-            "characters": data.get("characters", []),
+            "characters": characters,
             "location": data.get("location", ""),
             "time": data.get("time", ""),
-            "actions": data.get("actions", []),
+            "actions": actions,
             "emotion": data.get("emotion", ""),
-            "visual_priority": data.get("visual_priority", "medium"),
+            "visual_priority": visual_priority,
         }
 
-    def plan_shot(self, beat_text: str) -> dict:
-        _ = beat_text
-        return {}
+    def plan_shot(self, beat: Beat) -> dict:
+        template = _load_prompt("plan_shot.txt")
+        prompt = (
+            template
+            .replace("{text}", beat.text)
+            .replace("{characters}", ", ".join(beat.characters) if beat.characters else "none")
+            .replace("{emotion}", beat.emotion or "neutral")
+            .replace("{location}", beat.location or "unknown")
+        )
+        try:
+            raw = self._call_llm(system="你是漫画分镜导演，只输出 JSON。", user=prompt)
+        except Exception as exc:
+            _warn(f"plan_shot call failed: {exc}; beat_id={beat.beat_id}")
+            return {}
 
-    def build_prompt(self, payload: dict) -> str:
-        _ = payload
-        return ""
+        cleaned = _strip_fences(raw)
+        try:
+            data = json.loads(cleaned)
+            if not isinstance(data, dict):
+                raise ValueError("parsed payload is not a JSON object")
+        except Exception as exc:
+            _warn(f"plan_shot JSON parse failed: {exc}; beat_id={beat.beat_id}")
+            return {}
+
+        return {
+            "shot_type": data.get("shot_type", ""),
+            "subject_focus": data.get("subject_focus", ""),
+            "composition": data.get("composition", ""),
+            "mood": data.get("mood", ""),
+        }
+
+    def build_panel_prompt(self, payload: dict) -> str:
+        template = _load_prompt("build_prompt.txt")
+        prompt = (
+            template
+            .replace("{character_anchor}", payload.get("character_anchor", ""))
+            .replace("{scene_anchor}", payload.get("scene_anchor", ""))
+            .replace("{action}", payload.get("action", ""))
+            .replace("{camera}", payload.get("camera", ""))
+        )
+        raw = self._call_llm(
+            system="You are a manga image prompt writer. Output only the prompt, nothing else.",
+            user=prompt,
+        )
+        text = raw.strip()
+        if not text:
+            _warn("build_panel_prompt returned empty text; fallback will be used by caller")
+        return text
 
     def _call_llm(self, system: str, user: str) -> str:
-        if config.LLM_BACKEND == "gemini":
-            return self._call_gemini(system, user)
-        if config.LLM_BACKEND == "deepseek":
-            return self._call_deepseek(system, user)
-        return self._call_claude(system, user)
+        return self._call_deepseek(system, user)
 
     def _call_deepseek(self, system: str, user: str) -> str:
-        from openai import OpenAI
+        if not config.DEEPSEEK_API_KEY:
+            raise RuntimeError("DEEPSEEK_API_KEY is not set")
+
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise RuntimeError("Missing dependency 'openai'. Run: pip install openai") from exc
 
         client = OpenAI(
             api_key=config.DEEPSEEK_API_KEY,
@@ -85,27 +165,3 @@ class LLMProvider:
             ],
         )
         return response.choices[0].message.content
-
-    def _call_gemini(self, system: str, user: str) -> str:
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(api_key=config.GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model=self.model,
-            contents=user,
-            config=types.GenerateContentConfig(system_instruction=system),
-        )
-        return response.text
-
-    def _call_claude(self, system: str, user: str) -> str:
-        import anthropic
-
-        client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-        message = client.messages.create(
-            model=self.model,
-            max_tokens=1000,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
-        return message.content[0].text

@@ -1,16 +1,15 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "comic-maker"
 version = "0.1.0"
-description = "漫画自动生成流水线：小说文本 → 分镜 → 出图 → 拼页 → 导出"
+description = "漫画自动生成流水线：小说文本 -> 分镜 -> 出图 -> 拼页 -> 导出"
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.89.0",
+    "openai>=1.40.0",
     "python-dotenv>=1.0.0",
-    "pillow>=10.0.0",
     "requests>=2.31.0",
 ]
 

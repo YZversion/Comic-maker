@@ -1,6 +1,6 @@
 ﻿# Comic Maker
 
-Comic Maker 是一个把小说章节转成漫画生产中间产物的流水线工具。
+Comic Maker 是一个把小说章节转换成漫画生产中间产物的流水线工具。
 
 当前流水线：
 
@@ -10,19 +10,17 @@ Comic Maker 是一个把小说章节转成漫画生产中间产物的流水线�
 
 - 章节切分：把输入文本拆成 `Beat` 列表
 - 镜头规划：为每个 `Beat` 生成 `ShotPlan`
-- Prompt 组装：基于角色/场景/动作信息生成分镜 prompt
-- 出图 Provider：支持 `siliconflow`、`liblib`
-- 审核与重试：支持失败后重试，并已修复“重试导致格数增加”问题
+- Prompt 组装：基于角色/场景/动作生成分镜 prompt
+- 出图 Provider：支持 `mock`、`siliconflow`、`liblib`（默认 `liblib`）
+- 审核与重试：支持失败后重试，且已修复“重试导致格数增加”
 - 拼页与导出：生成 `page_manifest` 并导出章节包
 
-## Project Status
+## LLM Backend
 
-项目已可跑通端到端流程，适合继续迭代。
+当前版本仅支持 **DeepSeek**。
 
-当前已知限制：
-
-- 跨 panel 人物一致性仍需增强（目前主要依赖 prompt）
-- 多 provider 的参数还需要进一步调优（seed/参考图/一致性控制）
+- `DEEPSEEK_API_KEY` 必填
+- `LLM_MODEL` 默认 `deepseek-chat`
 
 ## Requirements
 
@@ -45,17 +43,23 @@ pip install -e .
 
 ### 2) Configure `.env`
 
-复制 `.env.example` 为 `.env`，填写你要使用的服务密钥。
+复制 `.env.example` 为 `.env` 并填写密钥。
 
-最常用配置项：
+关键配置：
 
-- `LLM_BACKEND`: `anthropic` | `gemini` | `deepseek`
-- `LLM_MODEL`
-- `IMAGE_PROVIDER`: `mock` | `siliconflow` | `liblib`
-- `IMAGE_MODEL`
-- 对应的 `*_API_KEY`
+- `DEEPSEEK_API_KEY`
+- `IMAGE_PROVIDER`（默认 `liblib`）
+- `LIBLIB_ACCESS_KEY`
+- `LIBLIB_SECRET_KEY`
+- `LIBLIB_TEMPLATE_UUID`（可选）
 
 ### 3) Run Tests
+
+单元/回归测试：
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
 
 烟雾测试：
 
@@ -63,11 +67,7 @@ pip install -e .
 python -m comic_maker.test_run
 ```
 
-重试回归测试（锁死“重试不增格”）：
-
-```bash
-python -m unittest tests.test_retry_no_panel_growth -v
-```
+说明：烟雾测试会强制使用 `mock` 出图，避免真实 API 成本与网络波动。
 
 ### 4) Run Pipeline
 
@@ -75,7 +75,7 @@ python -m unittest tests.test_retry_no_panel_growth -v
 python -m comic_maker.main
 ```
 
-安装后也可用命令：
+安装后也可使用命令：
 
 ```bash
 comic-maker
@@ -114,7 +114,6 @@ Comic-maker/
 │   ├── data/
 │   └── output/
 ├── tests/
-│   └── test_retry_no_panel_growth.py
 ├── pyproject.toml
 ├── .env.example
 └── README.md
