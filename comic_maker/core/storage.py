@@ -49,6 +49,19 @@ def init_data_files() -> None:
 
 def append_panel_manifest(record: dict, path: str = config.PANEL_MANIFEST_PATH):
     manifest = load_json(path, [])
+
+    panel_id = record.get("panel_id")
+    if panel_id is None:
+        manifest.append(record)
+        save_json(path, manifest)
+        return
+
+    for i, item in enumerate(manifest):
+        if item.get("panel_id") == panel_id:
+            manifest[i] = record
+            save_json(path, manifest)
+            return
+
     manifest.append(record)
     save_json(path, manifest)
 
