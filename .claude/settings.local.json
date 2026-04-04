@@ -5,7 +5,17 @@
       "Bash(python -m comic_maker.test_run)",
       "Bash(pip list:*)",
       "Bash(pip install:*)",
-      "Bash(python -c \"import setuptools; print\\(setuptools.__version__\\)\")"
+      "Bash(python -c \"import setuptools; print\\(setuptools.__version__\\)\")",
+      "Bash(pip show:*)",
+      "Bash(python -c ':*)",
+      "WebFetch(domain:www.liblib.art)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:liblibai-online.feishu.cn)",
+      "WebFetch(domain:openapi.liblibai.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:blog.csdn.net)"
     ]
   }
 }

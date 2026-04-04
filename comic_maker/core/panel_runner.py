@@ -15,7 +15,7 @@ except ImportError:
 
 
 def make_panel_output_path(panel_id: str) -> str:
-    return os.path.join(config.PANELS_DIR, f"{panel_id}.png")
+    return os.path.join(config.PANELS_DIR, panel_id)
 
 
 def run_panel_job(job: PanelJob) -> dict:

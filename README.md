@@ -1,62 +1,37 @@
 ﻿# Comic Maker
 
-一个用于把章节文本自动转换成漫画生产中间产物的流水线项目。
+Comic Maker 是一个把小说章节转成漫画生产中间产物的流水线工具。
 
-当前主流程：
+当前流水线：
 
-`章节输入 -> 自动切分 -> 镜头规划 -> 上下文补全 -> 出图(mock) -> 审核 -> 拼页 -> 导出`
+`章节输入 -> 自动切分 -> 镜头规划 -> 上下文补全 -> 出图 -> 人工审核/重试 -> 拼页 -> 导出`
 
-## Current Status
+## Features
 
-目前已具备可运行骨架（偏 Day1/Day2 能力）：
-
-- 章节切分：按段落/基础规则生成 `Beat`
-- 镜头规划：根据 `Beat` 生成基础 `ShotPlan`
-- Prompt 组装：结合角色/场景上下文生成面板 prompt
-- 出图：默认 `mock` provider（写入占位文件）
-- 审核与重试：支持人工通过/重试
+- 章节切分：把输入文本拆成 `Beat` 列表
+- 镜头规划：为每个 `Beat` 生成 `ShotPlan`
+- Prompt 组装：基于角色/场景/动作信息生成分镜 prompt
+- 出图 Provider：支持 `siliconflow`、`liblib`
+- 审核与重试：支持失败后重试，并已修复“重试导致格数增加”问题
 - 拼页与导出：生成 `page_manifest` 并导出章节包
 
-## Project Layout
+## Project Status
 
-```text
-Comic-maker/
-├── comic_maker/
-│   ├── main.py
-│   ├── config.py
-│   ├── test_run.py
-│   ├── prompts/
-│   ├── core/
-│   │   ├── models.py
-│   │   ├── storage.py
-│   │   ├── segmenter.py
-│   │   ├── planner.py
-│   │   ├── prompt_builder.py
-│   │   ├── context_manager.py
-│   │   ├── panel_runner.py
-│   │   ├── reviewer.py
-│   │   ├── page_builder.py
-│   │   └── exporter.py
-│   ├── providers/
-│   │   ├── llm_provider.py
-│   │   └── image_provider.py
-│   ├── data/
-│   └── output/
-├── pyproject.toml
-├── .env.example
-└── LICENSE
-```
+项目已可跑通端到端流程，适合继续迭代。
+
+当前已知限制：
+
+- 跨 panel 人物一致性仍需增强（目前主要依赖 prompt）
+- 多 provider 的参数还需要进一步调优（seed/参考图/一致性控制）
 
 ## Requirements
 
 - Python `>=3.11`
-- Windows / macOS / Linux 均可（已在 Windows PowerShell 下验证）
+- 推荐使用虚拟环境
 
 ## Quick Start
 
-### 1) 安装依赖
-
-在仓库根目录执行：
+### 1) Install
 
 ```bash
 python -m venv .venv
@@ -68,21 +43,39 @@ python -m venv .venv
 pip install -e .
 ```
 
-### 2) 运行烟雾测试（推荐先跑）
+### 2) Configure `.env`
+
+复制 `.env.example` 为 `.env`，填写你要使用的服务密钥。
+
+最常用配置项：
+
+- `LLM_BACKEND`: `anthropic` | `gemini` | `deepseek`
+- `LLM_MODEL`
+- `IMAGE_PROVIDER`: `mock` | `siliconflow` | `liblib`
+- `IMAGE_MODEL`
+- 对应的 `*_API_KEY`
+
+### 3) Run Tests
+
+烟雾测试：
 
 ```bash
 python -m comic_maker.test_run
 ```
 
-如果输出包含 `-- 全部通过 --`，说明当前骨架正常。
+重试回归测试（锁死“重试不增格”）：
 
-### 3) 运行主流程
+```bash
+python -m unittest tests.test_retry_no_panel_growth -v
+```
+
+### 4) Run Pipeline
 
 ```bash
 python -m comic_maker.main
 ```
 
-或安装后直接用 CLI：
+安装后也可用命令：
 
 ```bash
 comic-maker
@@ -90,62 +83,67 @@ comic-maker
 
 ## Input / Output
 
-### 输入
+输入：
 
-- 交互输入章节 ID（例如 `ch01`）
-- 交互输入章节文本，单独输入 `END` 结束
+- 章节 ID（如 `ch01`）
+- 章节正文（输入完成后单独一行输入 `END`）
 
-### 运行中间数据
+运行数据目录：
 
-默认写入 `comic_maker/data/`：
+- `comic_maker/data/`
+- `comic_maker/output/`
 
-- `character_db.json`
-- `scene_db.json`
-- `prop_db.json`
-- `panel_manifest.json`
-- `project_state.json`
+主要产物：
 
-### 输出产物
+- `comic_maker/data/panel_manifest.json`
+- `comic_maker/output/pages/page_manifest.json`
+- `comic_maker/output/exports/<chapter_id>/`
+- `comic_maker/output/logs/run.log`
 
-默认写入 `comic_maker/output/`：
+## Project Layout
 
-- `panels/`：mock 出图占位文件（`*.png.txt`）
-- `pages/page_manifest.json`
-- `exports/<chapter_id>/`：章节导出包
-- `logs/run.log`
+```text
+Comic-maker/
+├── comic_maker/
+│   ├── main.py
+│   ├── config.py
+│   ├── test_run.py
+│   ├── core/
+│   ├── providers/
+│   ├── prompts/
+│   ├── data/
+│   └── output/
+├── tests/
+│   └── test_retry_no_panel_growth.py
+├── pyproject.toml
+├── .env.example
+└── README.md
+```
 
-## Config
+## Security Checklist (Before Git Push)
 
-核心配置在 `comic_maker/config.py`：
+1. `.env` 不要提交（已在 `.gitignore`）
+2. 提交前检查暂存区：
 
-- 路径：`DATA_DIR`, `OUTPUT_DIR`, `..._PATH`
-- 模型：`LLM_MODEL`（当前默认 `gpt-4o-mini`）
-- 出图：`IMAGE_PROVIDER`（当前默认 `mock`）
-- 其它：`PANELS_PER_PAGE`, `MAX_RETRY`, `DEBUG`
+```powershell
+git diff --cached | Select-String -Pattern 'sk-|AIza|API_KEY|SECRET|TOKEN|Bearer'
+```
 
-## Environment Variables
+无输出再 push。
 
-可参考 `.env.example`（后续接入真实服务时使用）：
+## Troubleshooting
 
-- `ANTHROPIC_API_KEY`
-- `IMAGE_PROVIDER`
-- `REPLICATE_API_TOKEN`
-- `DEBUG`
-
-## Common Issues
-
-### Windows 控制台乱码/编码问题
-
-如果终端中文显示异常，可先执行：
+### Windows 中文/编码显示异常
 
 ```powershell
 $env:PYTHONUTF8='1'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 ```
 
-## Next Steps
+### `ModuleNotFoundError`
 
-- 用真实 LLM 替换 `providers/llm_provider.py` stub
-- 用真实图片服务替换 `providers/image_provider.py` mock
-- 增加自动审核规则和更细粒度重试策略
-- 补充单元测试（`segmenter/planner/storage`）
+优先使用模块方式运行：
+
+```bash
+python -m comic_maker.main
+```

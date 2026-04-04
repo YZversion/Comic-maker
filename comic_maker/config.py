@@ -24,9 +24,18 @@ PAGE_MANIFEST_PATH = os.path.join(PAGES_DIR, "page_manifest.json")
 RUN_LOG_PATH = os.path.join(LOGS_DIR, "run.log")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
+LIBLIB_ACCESS_KEY = os.getenv("LIBLIB_ACCESS_KEY", "")
+LIBLIB_SECRET_KEY = os.getenv("LIBLIB_SECRET_KEY", "")
+LIBLIB_TEMPLATE_UUID = os.getenv("LIBLIB_TEMPLATE_UUID", "")
 
-LLM_MODEL = os.getenv("LLM_MODEL", "claude-haiku-4-5-20251001")
-IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "mock")  # mock | replicate | comfy
+# LLM_BACKEND: "anthropic" | "gemini" | "deepseek"
+LLM_BACKEND = os.getenv("LLM_BACKEND", "deepseek")
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "siliconflow")  # mock | siliconflow | replicate | comfy
+IMAGE_MODEL = os.getenv("IMAGE_MODEL", "black-forest-labs/FLUX.1-schnell")
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
 PANELS_PER_PAGE = 4
