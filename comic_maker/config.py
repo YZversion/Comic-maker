@@ -44,7 +44,16 @@ PANELS_PER_PAGE = 4
 MAX_RETRY = 3
 
 # Fixed style anchor injected into every panel prompt
-STYLE_LOCK = "manga panel, black and white ink, clean lineart, screentone shading, highly detailed"
+STYLE_LOCK = (
+    "masterpiece, best quality, full-color manga panel illustration, consistent art style across panels, "
+    "consistent character design, clean lineart, cel shading, vibrant natural colors, cinematic lighting, "
+    "detailed background, coherent costume and facial features, stable eye color and hairstyle"
+)
 
 # Negative prompt passed to image providers that support it
-NEGATIVE_PROMPT = "color, photograph, 3d render, blurry, text, watermark, extra limbs, deformed"
+NEGATIVE_PROMPT = (
+    "monochrome, grayscale, black and white, lowres, blurry, bad anatomy, deformed face, extra fingers, "
+    "extra limbs, inconsistent character design, wrong hairstyle, wrong eye color, text, watermark, logo, "
+    "jpeg artifacts, overexposed, oversaturated"
+)
+

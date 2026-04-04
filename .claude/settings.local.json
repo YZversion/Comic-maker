@@ -16,7 +16,15 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:blog.csdn.net)",
-      "Bash(python -m pytest tests/ -v)"
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(wc -l /c/Users/yinzhou/Desktop/Comic-maker/comic_maker/prompts/*.txt)",
+      "Bash(head -50 /c/Users/yinzhou/Desktop/Comic-maker/tests/test_*.py)",
+      "Bash(wc -l /c/Users/yinzhou/Desktop/Comic-maker/comic_maker/**/*.py)",
+      "Bash(rm -f \"=0.8.0\")",
+      "Bash(rm -rf \".pytest_cache\")",
+      "Bash(rm -rf \"comic_maker.egg-info\")",
+      "Bash(rm -rf \"comic_maker/{core,providers,data,prompts,output\")",
+      "Bash(rm -rf \"data\")"
     ]
   }
 }
