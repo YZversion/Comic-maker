@@ -39,6 +39,7 @@ class PanelJob:
     retry_count: int = 0
     seed: int | None = None
     negative_prompt: str = ""
+    ref_image_paths: List[str] = field(default_factory=list)
 
     def to_dict(self):
         return self.__dict__

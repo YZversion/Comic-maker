@@ -28,13 +28,17 @@ SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 LIBLIB_ACCESS_KEY = os.getenv("LIBLIB_ACCESS_KEY", "")
 LIBLIB_SECRET_KEY = os.getenv("LIBLIB_SECRET_KEY", "")
 LIBLIB_TEMPLATE_UUID = os.getenv("LIBLIB_TEMPLATE_UUID", "")
+COMFYUI_URL = os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")
+IPADAPTER_MODEL = os.getenv("IPADAPTER_MODEL", "ip-adapter-plus_sdxl_vit-h.bin")
+IPADAPTER_CLIP_VISION = os.getenv("IPADAPTER_CLIP_VISION", "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors")
+IPADAPTER_WEIGHT = float(os.getenv("IPADAPTER_WEIGHT", "0.6"))
 
 # 当前版本仅支持 DeepSeek 作为 LLM 后端
 LLM_BACKEND = "deepseek"
 LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
 
 # 默认出图改为 LiblibAI
-IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "liblib")  # mock | siliconflow | liblib
+IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "comfyui")  # mock | siliconflow | liblib | comfyui
 IMAGE_MODEL = os.getenv("IMAGE_MODEL", "black-forest-labs/FLUX.1-schnell")
 
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
@@ -42,6 +46,9 @@ LOG_FALLBACKS = os.getenv("LOG_FALLBACKS", "true").lower() == "true"
 
 PANELS_PER_PAGE = 4
 MAX_RETRY = 3
+# Segments shorter than this many characters are merged with the previous segment
+# to avoid trivially short beats (e.g. bare dialogue lines like "来了。")
+MIN_BEAT_CHARS = 60
 
 # Fixed style anchor injected into every panel prompt
 STYLE_LOCK = (

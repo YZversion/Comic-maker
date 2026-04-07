@@ -177,6 +177,12 @@ def build_panel_jobs(beats: list[Beat], shots: list[ShotPlan]) -> list[PanelJob]
             character_state,
         )
 
+        char_db = context.get("character_context", {})
+        ref_image_paths = [
+            p for name in active_names
+            if (p := str(char_db.get(name, {}).get("ref_image", "") or "").strip())
+        ]
+
         jobs.append(
             PanelJob(
                 panel_id=panel_id,
@@ -184,6 +190,7 @@ def build_panel_jobs(beats: list[Beat], shots: list[ShotPlan]) -> list[PanelJob]
                 prompt=prompt,
                 seed=seed,
                 negative_prompt=config.NEGATIVE_PROMPT,
+                ref_image_paths=ref_image_paths,
             )
         )
 

@@ -35,6 +35,16 @@ def save_json(path: str, data) -> None:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def clear_panels_dir(panels_dir: str = config.PANELS_DIR) -> None:
+    """Delete all image files in the panels directory before a new chapter run."""
+    if not os.path.isdir(panels_dir):
+        return
+    for fname in os.listdir(panels_dir):
+        fpath = os.path.join(panels_dir, fname)
+        if os.path.isfile(fpath):
+            os.remove(fpath)
+
+
 def init_data_files() -> None:
     ensure_dir(config.DATA_DIR)
     for path, default in [

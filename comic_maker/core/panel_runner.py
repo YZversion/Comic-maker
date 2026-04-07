@@ -26,6 +26,7 @@ def run_panel_job(job: PanelJob) -> dict:
         output_path,
         seed=job.seed,
         negative_prompt=job.negative_prompt,
+        ref_image_paths=job.ref_image_paths,
     )
 
     record = {

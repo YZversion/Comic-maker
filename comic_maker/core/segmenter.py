@@ -1,5 +1,10 @@
 ﻿import re
 
+try:
+    from comic_maker import config
+except ModuleNotFoundError:
+    import config
+
 from .context_manager import build_alias_map, load_character_db, normalize_character_names
 from .models import Beat
 from ..providers.llm_provider import LLMProvider
@@ -24,6 +29,23 @@ def split_by_rules(paragraphs: list[str]) -> list[str]:
     return segments
 
 
+def merge_short_segments(segments: list[str], min_chars: int) -> list[str]:
+    """Merge segments shorter than min_chars into the previous segment.
+
+    Prevents trivially short beats (bare dialogue, one-word fragments) from
+    becoming standalone panels.
+    """
+    if not segments:
+        return segments
+    merged = [segments[0]]
+    for seg in segments[1:]:
+        if len(merged[-1]) < min_chars:
+            merged[-1] += "\u3000" + seg
+        else:
+            merged.append(seg)
+    return merged
+
+
 def build_beats_from_segments(segments: list[str]) -> list[Beat]:
     beats = []
     for i, seg in enumerate(segments, start=1):
@@ -34,6 +56,7 @@ def build_beats_from_segments(segments: list[str]) -> list[Beat]:
 def segment_chapter(chapter_text: str) -> list[Beat]:
     paragraphs = split_by_paragraph(chapter_text)
     segments = split_by_rules(paragraphs)
+    segments = merge_short_segments(segments, config.MIN_BEAT_CHARS)
     beats = build_beats_from_segments(segments)
     llm = LLMProvider()
     alias_map = build_alias_map(load_character_db())

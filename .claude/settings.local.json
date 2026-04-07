@@ -24,7 +24,25 @@
       "Bash(rm -rf \".pytest_cache\")",
       "Bash(rm -rf \"comic_maker.egg-info\")",
       "Bash(rm -rf \"comic_maker/{core,providers,data,prompts,output\")",
-      "Bash(rm -rf \"data\")"
+      "Bash(rm -rf \"data\")",
+      "Bash(python -m pytest tests/test_comfyui_provider.py -v)",
+      "Bash(python -m pytest tests/test_comfyui_provider.py -v --rootdir=. -c /dev/null)",
+      "Bash(python .claude/load_context.py)",
+      "Bash(python -c \"import openai; print\\('openai ok:', openai.__version__\\)\")",
+      "Bash(python -m comic_maker.main --batch)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/load_context.py",
+            "statusMessage": "Loading project context (CLAUDE.md + architecture.md)..."
+          }
+        ]
+      }
     ]
   }
 }

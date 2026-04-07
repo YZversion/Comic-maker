@@ -23,6 +23,7 @@ try:
     from comic_maker.core.segmenter import segment_chapter
     from comic_maker.core.storage import (
         append_log,
+        clear_panels_dir,
         ensure_dir,
         init_data_files,
         init_project_state,
@@ -175,6 +176,7 @@ def stage_review_prompts(jobs, batch: bool = False):
 def stage_generate_panels(jobs, batch: bool = False):
     print_stage("阶段 5：生成分格图片")
 
+    clear_panels_dir()
     save_json(config.PANEL_MANIFEST_PATH, [])
 
     approved = 0
